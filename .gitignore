@@ -1,0 +1,20 @@
+# Backend (Firebase Functions)
+backend/functions/node_modules/
+backend/functions/lib/
+backend/*.log
+backend/.firebase/
+
+# iOS - XcodeGenで生成されるため追跡しない
+ios/*.xcodeproj/
+ios/Generated/
+ios/.build/
+ios/build/
+ios/DerivedData/
+ios/*.xcworkspace/
+
+# macOS
+.DS_Store
+
+# エディタ
+.vscode/
+.idea/

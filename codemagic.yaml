@@ -1,0 +1,57 @@
+workflows:
+  ios-testflight:
+    name: PokeHuta - TestFlight配布
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: pokehuta_asc_api_key # Codemagic側で登録するApp Store Connect API Key連携の名前
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.kmtsjym.pokehuta
+      vars:
+        XCODE_PROJECT: "PokeHuta.xcodeproj"
+        XCODE_SCHEME: "PokeHuta"
+        APP_STORE_APPLE_ID: 0000000000 # App Store Connectで発行されるApple ID(数字)に置き換える
+      xcode: latest
+    scripts:
+      - name: Install XcodeGen
+        script: |
+          brew install xcodegen
+
+      - name: Generate Xcode project from project.yml
+        script: |
+          cd ios
+          xcodegen generate
+
+      - name: Resolve Swift Package dependencies
+        script: |
+          cd ios
+          xcodebuild -resolvePackageDependencies -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME"
+
+      - name: Set up automatic code signing
+        script: |
+          cd ios
+          xcode-project use-profiles
+
+      - name: Bump build number
+        script: |
+          cd ios
+          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID" || echo 0)
+          agvtool new-version -all $(($LATEST_BUILD_NUMBER + 1))
+
+      - name: Build .ipa
+        script: |
+          cd ios
+          xcode-project build-ipa --project "$XCODE_PROJECT" --scheme "$XCODE_SCHEME"
+
+    artifacts:
+      - ios/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        beta_groups:
+          - "Internal Testers" # App Store Connectで作成した内部テスターグループ名に置き換える
