@@ -92,11 +92,14 @@ async function syncOneManhole(manholeId: string): Promise<void> {
  * 既存分は既に登録済みのIDセットと突き合わせるだけで詳細再取得は行わない
  * (サイトへの負荷を抑えるため。全件の再取得はforceFullで実施)。
  */
-export async function runManholeSync(options?: { forceFull?: boolean }): Promise<SyncResult> {
+export async function runManholeSync(options?: { forceFull?: boolean; maxItems?: number }): Promise<SyncResult> {
   const discoveredIds = await discoverAllManholeIds();
   const existingIds = options?.forceFull ? new Set<string>() : await getExistingManholeIds();
 
-  const targetIds = discoveredIds.filter((id) => !existingIds.has(id));
+  let targetIds = discoveredIds.filter((id) => !existingIds.has(id));
+  if (options?.maxItems) {
+    targetIds = targetIds.slice(0, options.maxItems);
+  }
   logger.info(`discovered=${discoveredIds.length} existing=${existingIds.size} new=${targetIds.length}`);
 
   const failedIds: string[] = [];

@@ -16,6 +16,26 @@ codemagic.yaml  クラウドMacでのビルド・TestFlight配布設定
 
 ---
 
+## 0. 課金なし・ローカルだけで試す(Firebaseエミュレータ)
+
+実際のFirebaseプロジェクトを作らなくても、Firestore/Storage/Cloud Functionsは**エミュレータ**でPC上だけで動かせる。Googleアカウントへのログインも課金も一切不要。
+
+```powershell
+cd backend
+npm install --ignore-scripts   # firebase-toolsを取得(初回のみ)
+cd functions
+npm install --ignore-scripts
+npm run build
+cd ..
+npm run emulators              # --project demo-pokehuta で起動(デモ用の架空プロジェクトID)
+```
+
+ブラウザで http://127.0.0.1:4000 を開くとEmulator UIからFirestore/Storageの中身を確認できる。この状態で `syncManholesManual` 相当のロジックを動かして実際に`local.pokemon.jp`から取得したデータがFirestoreに入ることを確認済み(2026年8月時点で482件のポケふたを実際に検出)。
+
+**注意**: Firestore/Storageエミュレータの実体はJavaで動いているため、Java 21以上が必要(`java -version`で確認)。写真モデレーション(`moderatePhoto`)が呼び出すCloud Vision APIは実際のGoogle Cloud課金を伴う外部サービスのため、エミュレータでは動作確認できない(後述の本番デプロイ時に確認)。
+
+ここまでは無料で完結する。本番相当の動作(毎日自動実行・実際のiPhoneアプリからのアクセス)を試すには、以下の手順で実際のFirebaseプロジェクトが必要になる。
+
 ## 1. Firebaseプロジェクトのセットアップ
 
 1. [Firebaseコンソール](https://console.firebase.google.com/)で新規プロジェクトを作成
