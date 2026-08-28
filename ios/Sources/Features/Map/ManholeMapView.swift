@@ -9,14 +9,14 @@ struct ManholeMapView: View {
         center: CLLocationCoordinate2D(latitude: 36.2048, longitude: 138.2529),
         span: MKCoordinateSpan(latitudeDelta: 12, longitudeDelta: 12)
     )
-    @State private var selectedManhole: Manhole?
+    @State private var path = NavigationPath()
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             Map(coordinateRegion: $region, showsUserLocation: true, annotationItems: manholeRepository.manholes) { manhole in
                 MapAnnotation(coordinate: CLLocationCoordinate2D(latitude: manhole.lat, longitude: manhole.lng)) {
                     Button {
-                        selectedManhole = manhole
+                        path.append(manhole)
                     } label: {
                         Image(systemName: "mappin.circle.fill")
                             .font(.title2)
@@ -25,7 +25,7 @@ struct ManholeMapView: View {
                 }
             }
             .navigationTitle("ポケふたマップ")
-            .navigationDestination(item: $selectedManhole) { manhole in
+            .navigationDestination(for: Manhole.self) { manhole in
                 ManholeDetailView(manhole: manhole)
             }
             .overlay(alignment: .top) {

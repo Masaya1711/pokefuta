@@ -70,7 +70,7 @@ final class LocationManager: NSObject, ObservableObject {
 
         let nearest = manholes
             .compactMap { manhole -> (id: String, coordinate: CLLocationCoordinate2D, distance: CLLocationDistance)? in
-                guard let id = manhole.id else { return nil }
+                let id = manhole.id
                 let coordinate = CLLocationCoordinate2D(latitude: manhole.lat, longitude: manhole.lng)
                 let distance = current.distance(from: CLLocation(latitude: manhole.lat, longitude: manhole.lng))
                 return (id, coordinate, distance)
@@ -100,7 +100,7 @@ final class LocationManager: NSObject, ObservableObject {
 
         let nearest = manholes
             .compactMap { manhole -> (id: String, distance: CLLocationDistance)? in
-                guard let id = manhole.id else { return nil }
+                let id = manhole.id
                 let distance = current.distance(from: CLLocation(latitude: manhole.lat, longitude: manhole.lng))
                 return (id, distance)
             }
