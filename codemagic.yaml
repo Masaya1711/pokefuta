@@ -48,5 +48,6 @@ workflows:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
-        beta_groups:
-          - "Friends" # App Store Connectの外部テスターグループ名に置き換える
+        # 外部テスターグループ(Friends)は初回ビルドが1つ存在しないと作成できないため、
+        # 初回ビルドではbeta_groups指定を外している。ビルド後にApp Store Connectで
+        # グループを作成し、以降のビルドではここに "Friends" を追加して自動化する。

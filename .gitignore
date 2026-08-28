@@ -16,3 +16,7 @@ ios/*.xcworkspace/
 # エディタ
 .vscode/
 .idea/
+
+# 秘密鍵
+*.p8
+
