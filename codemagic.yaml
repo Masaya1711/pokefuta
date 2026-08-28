@@ -12,7 +12,7 @@ workflows:
       vars:
         XCODE_PROJECT: "PokeHuta.xcodeproj"
         XCODE_SCHEME: "PokeHuta"
-        APP_STORE_APPLE_ID: 0000000000 # App Store Connectで発行されるApple ID(数字)に置き換える
+        APP_STORE_APPLE_ID: 6806318062
       xcode: latest
     scripts:
       - name: Install XcodeGen
