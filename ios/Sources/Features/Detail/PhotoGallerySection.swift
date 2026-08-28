@@ -17,10 +17,14 @@ struct PhotoGallerySection: View {
             } else {
                 LazyVGrid(columns: columns, spacing: 8) {
                     ForEach(photos) { photo in
-                        AsyncImage(url: URL(string: photo.downloadUrl)) { image in
-                            image.resizable().aspectRatio(contentMode: .fill)
-                        } placeholder: {
-                            Color(.secondarySystemBackground)
+                        Group {
+                            if let data = photo.imageData, let uiImage = UIImage(data: data) {
+                                Image(uiImage: uiImage)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                            } else {
+                                Color(.secondarySystemBackground)
+                            }
                         }
                         .frame(width: 100, height: 100)
                         .clipShape(RoundedRectangle(cornerRadius: 8))

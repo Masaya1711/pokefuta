@@ -15,8 +15,10 @@ struct MainTabView: View {
             SettingsView()
                 .tabItem { Label("設定", systemImage: "gearshape") }
         }
+        .task {
+            await manholeRepository.load()
+        }
         .onAppear {
-            manholeRepository.startListening()
             locationManager.requestForegroundAuthorization()
             locationManager.startForegroundUpdates()
         }

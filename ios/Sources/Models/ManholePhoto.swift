@@ -1,17 +1,29 @@
 import Foundation
-import FirebaseFirestore
+import CloudKit
 
-enum ModerationStatus: String, Codable {
-    case pending
-    case approved
-    case rejected
+struct ManholePhoto: Identifiable, Hashable {
+    var id: String
+    var manholeId: String
+    var ownerRecordName: String
+    var imageData: Data?
+    var createdAt: Date?
+
+    static func == (lhs: ManholePhoto, rhs: ManholePhoto) -> Bool { lhs.id == rhs.id }
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }
 
-struct ManholePhoto: Identifiable, Codable, Hashable {
-    @DocumentID var id: String?
-    var userId: String
-    var storagePath: String
-    var downloadUrl: String
-    @ServerTimestamp var createdAt: Date?
-    var moderationStatus: ModerationStatus
+extension ManholePhoto {
+    init?(record: CKRecord) {
+        guard let manholeId = record["manholeId"] as? String,
+              let ownerRecordName = record["ownerRecordName"] as? String else { return nil }
+        id = record.recordID.recordName
+        self.manholeId = manholeId
+        self.ownerRecordName = ownerRecordName
+        createdAt = record.creationDate
+        if let asset = record["asset"] as? CKAsset, let url = asset.fileURL {
+            imageData = try? Data(contentsOf: url)
+        } else {
+            imageData = nil
+        }
+    }
 }

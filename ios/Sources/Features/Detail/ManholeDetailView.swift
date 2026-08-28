@@ -9,7 +9,7 @@ struct ManholeDetailView: View {
 
     init(manhole: Manhole) {
         self.manhole = manhole
-        _detailService = StateObject(wrappedValue: ManholeDetailService(manholeId: manhole.id ?? ""))
+        _detailService = StateObject(wrappedValue: ManholeDetailService(manholeId: manhole.id))
     }
 
     var body: some View {
@@ -51,14 +51,13 @@ struct ManholeDetailView: View {
 
                 Divider()
 
-                SpotListSection(manhole: manhole, detailService: detailService)
+                SpotListSection(detailService: detailService)
                     .padding(.horizontal)
             }
             .padding(.bottom, 32)
         }
         .navigationTitle(manhole.displayTitle)
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear { detailService.startListening() }
-        .onDisappear { detailService.stopListening() }
+        .task { await detailService.refresh() }
     }
 }

@@ -1,32 +1,29 @@
 import Foundation
-import FirebaseFirestore
+import CloudKit
 
 @MainActor
 final class CheckinHistoryService: ObservableObject {
     @Published var checkins: [Checkin] = []
+    @Published var errorMessage: String?
 
-    private var listener: ListenerRegistration?
-    private let db = Firestore.firestore()
+    private let db = CKContainer.default().publicCloudDatabase
 
-    func startListening(userId: String) {
-        listener = db.collection("checkins")
-            .whereField("userId", isEqualTo: userId)
-            .order(by: "checkedInAt", descending: true)
-            .addSnapshotListener { [weak self] snapshot, _ in
-                self?.checkins = snapshot?.documents.compactMap { try? $0.data(as: Checkin.self) } ?? []
+    func refresh(ownerRecordName: String) async {
+        let predicate = NSPredicate(format: "ownerRecordName == %@", ownerRecordName)
+        let query = CKQuery(recordType: "Checkin", predicate: predicate)
+        query.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+        do {
+            let (results, _) = try await db.records(matching: query)
+            checkins = results.compactMap { _, result -> Checkin? in
+                guard case .success(let record) = result else { return nil }
+                return Checkin(record: record)
             }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     var checkedInManholeIds: Set<String> {
         Set(checkins.map { $0.manholeId })
-    }
-
-    func stopListening() {
-        listener?.remove()
-        listener = nil
-    }
-
-    deinit {
-        listener?.remove()
     }
 }

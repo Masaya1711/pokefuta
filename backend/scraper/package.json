@@ -1,0 +1,17 @@
+{
+  "name": "pokehuta-scraper",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "sync": "npm run build && node lib/syncCatalog.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "cheerio": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "typescript": "^5.6.3"
+  }
+}

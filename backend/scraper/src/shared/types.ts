@@ -3,14 +3,9 @@ export interface PokemonRef {
   zukanNo: string;
 }
 
-export interface ManholeImageUrls {
-  s: string;
-  m: string;
-  l: string;
-}
-
-export interface ManholeDoc {
-  manholeId: string;
+/** iOSアプリの`Manhole`モデルとフィールド名を一致させたカタログ1件分の形式。 */
+export interface ManholeCatalogEntry {
+  id: string;
   prefName: string;
   city: string;
   address: string;
@@ -18,10 +13,8 @@ export interface ManholeDoc {
   lng: number;
   pokemonList: PokemonRef[];
   description: string;
-  imageUrls: ManholeImageUrls;
+  imageUrl: string;
   sourceUrl: string;
-  syncedAt: FirebaseFirestore.FieldValue | FirebaseFirestore.Timestamp;
-  createdAt: FirebaseFirestore.FieldValue | FirebaseFirestore.Timestamp;
 }
 
 export interface ParsedManholeDetail {

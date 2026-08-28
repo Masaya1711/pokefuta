@@ -1,7 +1,7 @@
 import Foundation
-import FirebaseFirestore
+import CloudKit
 
-enum SpotCategory: String, Codable, CaseIterable, Identifiable {
+enum SpotCategory: String, CaseIterable, Identifiable {
     case restaurant
     case sightseeing
     case other
@@ -17,14 +17,32 @@ enum SpotCategory: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-struct Spot: Identifiable, Codable, Hashable {
-    @DocumentID var id: String?
-    var userId: String
+struct Spot: Identifiable, Hashable {
+    var id: String
+    var manholeId: String
+    var ownerRecordName: String
     var name: String
     var category: SpotCategory
     var rating: Int
     var comment: String
-    var lat: Double?
-    var lng: Double?
-    @ServerTimestamp var createdAt: Date?
+    var createdAt: Date?
+}
+
+extension Spot {
+    init?(record: CKRecord) {
+        guard let manholeId = record["manholeId"] as? String,
+              let ownerRecordName = record["ownerRecordName"] as? String,
+              let name = record["name"] as? String,
+              let categoryRaw = record["category"] as? String,
+              let category = SpotCategory(rawValue: categoryRaw),
+              let ratingNumber = record["rating"] as? Int64 else { return nil }
+        id = record.recordID.recordName
+        self.manholeId = manholeId
+        self.ownerRecordName = ownerRecordName
+        self.name = name
+        self.category = category
+        rating = Int(ratingNumber)
+        comment = record["comment"] as? String ?? ""
+        createdAt = record.creationDate
+    }
 }

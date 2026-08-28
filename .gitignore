@@ -1,11 +1,6 @@
-# Backend (Firebase Functions)
-backend/node_modules/
-backend/functions/node_modules/
-backend/functions/lib/
-backend/*.log
-backend/.firebase/
-backend/firebase-debug.log
-backend/firestore-debug.log
+# Backend (スクレイパー)
+backend/scraper/node_modules/
+backend/scraper/lib/
 
 # iOS - XcodeGenで生成されるため追跡しない
 ios/*.xcodeproj/

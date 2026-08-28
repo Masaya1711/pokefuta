@@ -83,27 +83,26 @@ struct CheckInSection: View {
     }
 
     private func checkIn() {
-        guard let userId = authService.currentUser?.uid, let distance else { return }
+        guard let ownerRecordName = authService.userRecordName, let distance else { return }
         isSubmitting = true
         errorMessage = nil
 
         Task {
             do {
-                var photoId: String?
                 if let pendingImageData {
                     let uploadService = PhotoUploadService()
-                    photoId = try await uploadService.uploadCheckinPhoto(
-                        manholeId: manhole.id ?? "",
-                        userId: userId,
+                    try await uploadService.uploadCheckinPhoto(
+                        manholeId: manhole.id,
+                        ownerRecordName: ownerRecordName,
                         imageData: pendingImageData
                     )
                 }
-                try detailService.addCheckin(
-                    userId: userId,
+                try await detailService.addCheckin(
+                    ownerRecordName: ownerRecordName,
                     method: .gpsAuto,
-                    distanceMeters: distance,
-                    photoId: photoId
+                    distanceMeters: distance
                 )
+                await detailService.refresh()
                 didCheckIn = true
             } catch {
                 errorMessage = error.localizedDescription

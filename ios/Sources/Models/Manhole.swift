@@ -1,18 +1,13 @@
 import Foundation
-import FirebaseFirestore
 
 struct PokemonRef: Codable, Hashable {
     var name: String
     var zukanNo: String
 }
 
-struct SpotRatingSummary: Codable, Hashable {
-    var count: Int
-    var avgRating: Double
-}
-
+/// `data/manholes.json`(GitHub上に配置)から取得する静的カタログの1件分。
 struct Manhole: Identifiable, Codable, Hashable {
-    @DocumentID var id: String?
+    var id: String
     var prefName: String
     var city: String
     var address: String
@@ -22,7 +17,6 @@ struct Manhole: Identifiable, Codable, Hashable {
     var description: String
     var imageUrl: String
     var sourceUrl: String
-    var spotRatingSummary: SpotRatingSummary?
 
     var displayTitle: String {
         "\(prefName)/\(city)"

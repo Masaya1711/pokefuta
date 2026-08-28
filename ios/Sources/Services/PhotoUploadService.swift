@@ -1,43 +1,19 @@
 import Foundation
-import FirebaseStorage
-import FirebaseFirestore
-
-enum PhotoUploadError: Error {
-    case notSignedIn
-    case encodingFailed
-}
+import CloudKit
 
 struct PhotoUploadService {
-    private let storage = Storage.storage()
-    private let db = Firestore.firestore()
+    private let db = CKContainer.default().publicCloudDatabase
 
-    /// チェックイン写真をStorageへアップロードし、Firestoreにドキュメントを作成する。
-    /// アップロード直後はmoderationStatus=pendingで登録し、
-    /// バックエンドのCloud Vision審査完了後にapproved/rejectedへ更新される。
-    func uploadCheckinPhoto(manholeId: String, userId: String, imageData: Data) async throws -> String {
-        let photoId = UUID().uuidString
-        let storagePath = "manholePhotos/\(manholeId)/\(userId)/\(photoId).jpg"
-        let ref = storage.reference(withPath: storagePath)
+    /// チェックイン写真をCloudKitの`ManholePhoto`レコードとして保存する(CKAsset)。
+    func uploadCheckinPhoto(manholeId: String, ownerRecordName: String, imageData: Data) async throws {
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".jpg")
+        try imageData.write(to: tempURL)
+        defer { try? FileManager.default.removeItem(at: tempURL) }
 
-        let metadata = StorageMetadata()
-        metadata.contentType = "image/jpeg"
-        _ = try await ref.putDataAsync(imageData, metadata: metadata)
-        let downloadUrl = try await ref.downloadURL()
-
-        let photo = ManholePhoto(
-            userId: userId,
-            storagePath: storagePath,
-            downloadUrl: downloadUrl.absoluteString,
-            moderationStatus: .pending
-        )
-
-        try db
-            .collection("manholes")
-            .document(manholeId)
-            .collection("photos")
-            .document(photoId)
-            .setData(from: photo)
-
-        return photoId
+        let record = CKRecord(recordType: "ManholePhoto")
+        record["manholeId"] = manholeId
+        record["ownerRecordName"] = ownerRecordName
+        record["asset"] = CKAsset(fileURL: tempURL)
+        _ = try await db.save(record)
     }
 }

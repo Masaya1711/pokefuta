@@ -44,16 +44,6 @@ export async function fetchManholeDetailFragment(manholeId: string): Promise<str
   return res.data as string;
 }
 
-export async function fetchImageBuffer(imagePath: string): Promise<Buffer> {
-  const url = imagePath.startsWith("http") ? imagePath : `${BASE_URL}${imagePath}`;
-  const res = await axios.get(url, {
-    headers: plainHeaders,
-    responseType: "arraybuffer",
-    timeout: 20000,
-  });
-  return Buffer.from(res.data);
-}
-
 /** サイトへの負荷を抑えるための固定ウェイト。連続リクエスト間に挿入する。 */
 export async function politeDelay(): Promise<void> {
   await delay(250);

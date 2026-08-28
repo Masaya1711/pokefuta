@@ -6,7 +6,7 @@ struct CollectionView: View {
     @StateObject private var historyService = CheckinHistoryService()
 
     private var checkedInManholes: [Manhole] {
-        manholeRepository.manholes.filter { historyService.checkedInManholeIds.contains($0.id ?? "") }
+        manholeRepository.manholes.filter { historyService.checkedInManholeIds.contains($0.id) }
     }
 
     private var groupedByPrefecture: [(pref: String, manholes: [Manhole])] {
@@ -42,11 +42,10 @@ struct CollectionView: View {
                 ManholeDetailView(manhole: manhole)
             }
         }
-        .onAppear {
-            if let userId = authService.currentUser?.uid {
-                historyService.startListening(userId: userId)
+        .task {
+            if let ownerRecordName = authService.userRecordName {
+                await historyService.refresh(ownerRecordName: ownerRecordName)
             }
         }
-        .onDisappear { historyService.stopListening() }
     }
 }

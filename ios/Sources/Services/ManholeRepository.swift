@@ -1,37 +1,22 @@
 import Foundation
-import FirebaseFirestore
 
+/// `data/manholes.json`(GitHub上の静的カタログ)をHTTP経由で取得する。
+/// サーバー・DBを持たず、依頼を受けたタイミングで手動更新されるファイルを読みに行くだけ。
 @MainActor
 final class ManholeRepository: ObservableObject {
     @Published var manholes: [Manhole] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
 
-    private var listener: ListenerRegistration?
-    private let db = Firestore.firestore()
-
-    func startListening() {
-        guard listener == nil else { return }
+    func load() async {
         isLoading = true
-        listener = db.collection("manholes").addSnapshotListener { [weak self] snapshot, error in
-            guard let self else { return }
-            self.isLoading = false
-            if let error {
-                self.errorMessage = error.localizedDescription
-                return
-            }
-            self.manholes = snapshot?.documents.compactMap {
-                try? $0.data(as: Manhole.self)
-            } ?? []
+        errorMessage = nil
+        do {
+            let (data, _) = try await URLSession.shared.data(from: AppConfig.manholeCatalogURL)
+            manholes = try JSONDecoder().decode([Manhole].self, from: data)
+        } catch {
+            errorMessage = error.localizedDescription
         }
-    }
-
-    func stopListening() {
-        listener?.remove()
-        listener = nil
-    }
-
-    deinit {
-        listener?.remove()
+        isLoading = false
     }
 }

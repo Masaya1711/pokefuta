@@ -1,72 +1,81 @@
 import Foundation
-import FirebaseFirestore
+import CloudKit
 
 @MainActor
 final class ManholeDetailService: ObservableObject {
     @Published var photos: [ManholePhoto] = []
     @Published var spots: [Spot] = []
+    @Published var errorMessage: String?
 
-    private var photosListener: ListenerRegistration?
-    private var spotsListener: ListenerRegistration?
-    private let db = Firestore.firestore()
     let manholeId: String
+    private let db = CKContainer.default().publicCloudDatabase
 
     init(manholeId: String) {
         self.manholeId = manholeId
     }
 
-    func startListening() {
-        let base = db.collection("manholes").document(manholeId)
+    var averageRating: Double {
+        guard !spots.isEmpty else { return 0 }
+        return Double(spots.reduce(0) { $0 + $1.rating }) / Double(spots.count)
+    }
 
-        photosListener = base.collection("photos")
-            .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
-            .order(by: "createdAt", descending: true)
-            .addSnapshotListener { [weak self] snapshot, _ in
-                self?.photos = snapshot?.documents.compactMap { try? $0.data(as: ManholePhoto.self) } ?? []
+    func refresh() async {
+        async let photosResult = fetchPhotos()
+        async let spotsResult = fetchSpots()
+        photos = await photosResult
+        spots = await spotsResult
+    }
+
+    private func fetchPhotos() async -> [ManholePhoto] {
+        let predicate = NSPredicate(format: "manholeId == %@", manholeId)
+        let query = CKQuery(recordType: "ManholePhoto", predicate: predicate)
+        query.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+        do {
+            let (results, _) = try await db.records(matching: query)
+            return results.compactMap { _, result -> ManholePhoto? in
+                guard case .success(let record) = result else { return nil }
+                return ManholePhoto(record: record)
             }
+        } catch {
+            errorMessage = error.localizedDescription
+            return []
+        }
+    }
 
-        spotsListener = base.collection("spots")
-            .order(by: "rating", descending: true)
-            .addSnapshotListener { [weak self] snapshot, _ in
-                self?.spots = snapshot?.documents.compactMap { try? $0.data(as: Spot.self) } ?? []
+    private func fetchSpots() async -> [Spot] {
+        let predicate = NSPredicate(format: "manholeId == %@", manholeId)
+        let query = CKQuery(recordType: "Spot", predicate: predicate)
+        query.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+        do {
+            let (results, _) = try await db.records(matching: query)
+            return results.compactMap { _, result -> Spot? in
+                guard case .success(let record) = result else { return nil }
+                return Spot(record: record)
             }
+        } catch {
+            errorMessage = error.localizedDescription
+            return []
+        }
     }
 
-    func stopListening() {
-        photosListener?.remove()
-        spotsListener?.remove()
+    func addSpot(ownerRecordName: String, name: String, category: SpotCategory, rating: Int, comment: String) async throws {
+        let record = CKRecord(recordType: "Spot")
+        record["manholeId"] = manholeId
+        record["ownerRecordName"] = ownerRecordName
+        record["name"] = name
+        record["category"] = category.rawValue
+        record["rating"] = Int64(rating)
+        record["comment"] = comment
+        _ = try await db.save(record)
+        await refresh()
     }
 
-    func addSpot(userId: String, name: String, category: SpotCategory, rating: Int, comment: String, lat: Double?, lng: Double?) throws {
-        let spot = Spot(
-            userId: userId,
-            name: name,
-            category: category,
-            rating: rating,
-            comment: comment,
-            lat: lat,
-            lng: lng
-        )
-        try db
-            .collection("manholes")
-            .document(manholeId)
-            .collection("spots")
-            .addDocument(from: spot)
-    }
-
-    func addCheckin(userId: String, method: CheckinMethod, distanceMeters: Double, photoId: String?) throws {
-        let checkin = Checkin(
-            userId: userId,
-            manholeId: manholeId,
-            method: method,
-            distanceMeters: distanceMeters,
-            photoId: photoId
-        )
-        try db.collection("checkins").addDocument(from: checkin)
-    }
-
-    deinit {
-        photosListener?.remove()
-        spotsListener?.remove()
+    func addCheckin(ownerRecordName: String, method: CheckinMethod, distanceMeters: Double) async throws {
+        let record = CKRecord(recordType: "Checkin")
+        record["manholeId"] = manholeId
+        record["ownerRecordName"] = ownerRecordName
+        record["method"] = method.rawValue
+        record["distanceMeters"] = distanceMeters
+        _ = try await db.save(record)
     }
 }

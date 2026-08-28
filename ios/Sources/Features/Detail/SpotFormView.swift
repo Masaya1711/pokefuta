@@ -3,7 +3,6 @@ import SwiftUI
 struct SpotFormView: View {
     @ObservedObject var detailService: ManholeDetailService
     @EnvironmentObject private var authService: AuthService
-    @EnvironmentObject private var locationManager: LocationManager
     @Environment(\.dismiss) private var dismiss
 
     @State private var name = ""
@@ -55,23 +54,22 @@ struct SpotFormView: View {
     }
 
     private func submit() {
-        guard let userId = authService.currentUser?.uid else { return }
+        guard let ownerRecordName = authService.userRecordName else { return }
         isSubmitting = true
-        do {
-            let location = locationManager.currentLocation
-            try detailService.addSpot(
-                userId: userId,
-                name: name,
-                category: category,
-                rating: rating,
-                comment: comment,
-                lat: location?.coordinate.latitude,
-                lng: location?.coordinate.longitude
-            )
-            dismiss()
-        } catch {
-            errorMessage = error.localizedDescription
+        Task {
+            do {
+                try await detailService.addSpot(
+                    ownerRecordName: ownerRecordName,
+                    name: name,
+                    category: category,
+                    rating: rating,
+                    comment: comment
+                )
+                dismiss()
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+            isSubmitting = false
         }
-        isSubmitting = false
     }
 }

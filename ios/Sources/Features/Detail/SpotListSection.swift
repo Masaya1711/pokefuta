@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct SpotListSection: View {
-    let manhole: Manhole
     @ObservedObject var detailService: ManholeDetailService
 
     @State private var showSpotForm = false
@@ -20,8 +19,8 @@ struct SpotListSection: View {
                 .font(.subheadline)
             }
 
-            if let summary = manhole.spotRatingSummary, summary.count > 0 {
-                Text(String(format: "平均%.1f点 (%d件)", summary.avgRating, summary.count))
+            if !detailService.spots.isEmpty {
+                Text(String(format: "平均%.1f点 (%d件)", detailService.averageRating, detailService.spots.count))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

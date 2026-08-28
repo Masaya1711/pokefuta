@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import { ParsedManholeDetail, PokemonRef } from "../shared/types";
+import { ParsedManholeDetail, PokemonRef } from "./shared/types";
 
 const BASE_URL = "https://local.pokemon.jp";
 
