@@ -1,5 +1,6 @@
 import SwiftUI
 import FirebaseCore
+import GoogleMaps
 
 @main
 struct PokeHutaApp: App {
@@ -24,6 +25,12 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         FirebaseApp.configure()
+
+        if let mapsApiKey = Bundle.main.object(forInfoDictionaryKey: "GMSApiKey") as? String,
+           !mapsApiKey.isEmpty, !mapsApiKey.hasPrefix("YOUR_") {
+            GMSServices.provideAPIKey(mapsApiKey)
+        }
+
         return true
     }
 }

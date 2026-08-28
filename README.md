@@ -81,7 +81,18 @@ firebase deploy --only functions,firestore:rules,storage:rules
 
 デプロイ後、認証済みユーザーとして `syncManholesManual` (Callable Function) を1回呼び出すと、サイト上の全ポケふた(2026年8月時点で480件超)がFirestoreに投入される。以降は `syncManholesDaily` が毎日JST4時に新着分のみを自動追加する。呼び出しにはFirebase CLIや簡単なNode.jsスクリプト、あるいはアプリの管理者用デバッグボタンなどを用意して実行する。
 
-## 3. iOSアプリのビルド(Codemagic)
+## 3. Google Maps APIキーの取得
+
+マップ画面はMapKitではなくGoogle Maps SDK for iOSを使用する。Apple純正のMapKitと違い、**Google Cloud側の課金設定(クレジットカード登録)が必要**(月間無料枠はあるが有効化にはカード登録必須)。
+
+1. [Google Cloud Console](https://console.cloud.google.com/)でプロジェクトを作成(Firebaseと同じプロジェクトを流用してもよい)
+2. 請求先アカウント(課金)を有効化
+3. 「APIとサービス」→「ライブラリ」から **Maps SDK for iOS** を有効化
+4. 「認証情報」→ APIキーを作成し、アプリケーションの制限を「iOSアプリ」、バンドルID `com.kmtsjym.pokehuta` に制限(不正利用防止のため必須)
+5. 発行されたAPIキーは、リポジトリには直接コミットしない。Codemagicの「Environment variables」で `google_maps` という名前のグループを作成し、`GOOGLE_MAPS_API_KEY` を **Secure** 指定で登録する(`codemagic.yaml` のビルドスクリプトがこの値を `ios/Secrets.xcconfig` に書き込んでからビルドする)
+6. 手元のMacで直接Xcodeを開いて試す場合は、`ios/Secrets.xcconfig` の `YOUR_GOOGLE_MAPS_API_KEY_HERE` を実際のキーに書き換える(このファイルは通常のプレースホルダー状態でコミットされているので、ローカルでの書き換え分は間違って自分でコミットしないよう注意)
+
+## 4. iOSアプリのビルド(Codemagic)
 
 1. このリポジトリをGitHub(プライベートリポジトリ推奨)にpush
 2. [Codemagic](https://codemagic.io/)にGitHubアカウントで登録し、このリポジトリを連携

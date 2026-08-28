@@ -13,11 +13,18 @@ workflows:
         XCODE_PROJECT: "PokeHuta.xcodeproj"
         XCODE_SCHEME: "PokeHuta"
         APP_STORE_APPLE_ID: 0000000000 # App Store Connectで発行されるApple ID(数字)に置き換える
+      groups:
+        - google_maps # Codemagicの環境変数グループ。GOOGLE_MAPS_API_KEYをSecure変数として登録する
       xcode: latest
     scripts:
       - name: Install XcodeGen
         script: |
           brew install xcodegen
+
+      - name: Inject Google Maps API key
+        script: |
+          cd ios
+          echo "GOOGLE_MAPS_API_KEY = $GOOGLE_MAPS_API_KEY" > Secrets.xcconfig
 
       - name: Generate Xcode project from project.yml
         script: |
