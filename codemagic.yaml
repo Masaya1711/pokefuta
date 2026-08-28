@@ -6,9 +6,6 @@ workflows:
     integrations:
       app_store_connect: pokehuta_asc_api_key # Codemagic側で登録するApp Store Connect API Key連携の名前
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.kmtsjym.pokehuta
       vars:
         XCODE_PROJECT: "PokeHuta.xcodeproj"
         XCODE_SCHEME: "PokeHuta"
