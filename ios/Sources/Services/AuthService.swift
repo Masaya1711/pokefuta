@@ -18,6 +18,7 @@ final class AuthService: ObservableObject {
     @Published private(set) var userRecordName: String?
 
     private let container = CKContainer(identifier: AppConfig.cloudKitContainerIdentifier)
+    private var profileRecordID: CKRecord.ID?
 
     var isSignedIn: Bool { state == .ready }
 
@@ -33,8 +34,12 @@ final class AuthService: ObservableObject {
             userRecordName = recordID.recordName
 
             do {
-                let record = try await container.publicCloudDatabase.record(for: recordID)
-                if let profile = UserProfile(record: record) {
+                let predicate = NSPredicate(format: "ownerRecordName == %@", recordID.recordName)
+                let query = CKQuery(recordType: "UserProfile", predicate: predicate)
+                let (results, _) = try await container.publicCloudDatabase.records(matching: query, resultsLimit: 1)
+                if let (foundRecordID, result) = results.first, case .success(let record) = result,
+                   let profile = UserProfile(record: record) {
+                    profileRecordID = foundRecordID
                     displayName = profile.displayName
                     backgroundCheckInEnabled = profile.backgroundCheckInEnabled
                     state = .ready
@@ -51,20 +56,20 @@ final class AuthService: ObservableObject {
 
     func completeOnboarding(displayName: String) async throws {
         guard let userRecordName else { return }
-        let recordID = CKRecord.ID(recordName: userRecordName)
-        let record = CKRecord(recordType: "UserProfile", recordID: recordID)
+        let record = CKRecord(recordType: "UserProfile")
+        record["ownerRecordName"] = userRecordName
         record["displayName"] = displayName
         record["backgroundCheckInEnabled"] = Int64(0)
-        _ = try await container.publicCloudDatabase.save(record)
+        let saved = try await container.publicCloudDatabase.save(record)
+        profileRecordID = saved.recordID
         self.displayName = displayName
         self.backgroundCheckInEnabled = false
         state = .ready
     }
 
     func updateBackgroundCheckInEnabled(_ enabled: Bool) async throws {
-        guard let userRecordName else { return }
-        let recordID = CKRecord.ID(recordName: userRecordName)
-        let record = try await container.publicCloudDatabase.record(for: recordID)
+        guard let profileRecordID else { return }
+        let record = try await container.publicCloudDatabase.record(for: profileRecordID)
         record["backgroundCheckInEnabled"] = Int64(enabled ? 1 : 0)
         _ = try await container.publicCloudDatabase.save(record)
         backgroundCheckInEnabled = enabled

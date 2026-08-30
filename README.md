@@ -53,11 +53,11 @@ npm run sync
 
 1. [Apple Developer Portal](https://developer.apple.com/account/resources/identifiers/list)でApp ID(`com.kmtsjym.pokehuta`)を作成し、「iCloud」機能(Capability)を有効化。コンテナは`iCloud.com.kmtsjym.pokefuta`という名前で新規作成する(`ios/project.yml`の`entitlements`と一致させること)
 2. [CloudKit Dashboard](https://icloud.developer.apple.com/dashboard/)で対象コンテナを開き、以下のレコードタイプをPublicデータベースに作成する:
-   - `UserProfile`: `displayName`(String), `backgroundCheckInEnabled`(Int64)
+   - `UserProfile`: `ownerRecordName`(String, インデックス可), `displayName`(String), `backgroundCheckInEnabled`(Int64)
    - `Checkin`: `manholeId`(String, インデックス可), `ownerRecordName`(String, インデックス可), `method`(String), `distanceMeters`(Double)
    - `ManholePhoto`: `manholeId`(String, インデックス可), `ownerRecordName`(String), `asset`(Asset)
    - `Spot`: `manholeId`(String, インデックス可), `ownerRecordName`(String), `name`(String), `category`(String), `rating`(Int64), `comment`(String)
-3. 各レコードタイプで`manholeId`・`ownerRecordName`にQueryableインデックスを設定する(アプリ側のCKQueryで絞り込み検索するため必須)
+3. 各レコードタイプで`manholeId`・`ownerRecordName`(`UserProfile`は`ownerRecordName`のみ)にQueryableインデックスを設定する(アプリ側のCKQueryで絞り込み検索するため必須)
 4. CloudKitの「Security Roles」で、Publicデータベースの`World`ロールに対して該当レコードタイプの Read/Write を許可する(友人同士がお互いの投稿を見られるようにするため)
 
 ## 4. iOSアプリのビルド(Codemagic)
