@@ -47,10 +47,10 @@ struct ManholeMapView: View {
     }
 }
 
-/// 個別ピンは透明背景のSF Symbol画像(`pinImage`)、クラスタ(まとまり)は`MKMarkerAnnotationView`の
-/// 件数バッジ表示を使う。`clusteringIdentifier`を設定することでMapKit標準の自動クラスタリング
-/// (近接ピンをまとめて件数表示し、拡大すると自動的に分離する)を利用する。SwiftUI標準の`Map`には
-/// クラスタリングAPIがないため、`MKMapView`をUIViewRepresentableでラップしている。
+/// 個別ピンは`Assets.xcassets/MapPin`(透明背景)、クラスタ(まとまり)は自前描画の丸バッジ画像を使う。
+/// `clusteringIdentifier`を設定することでMapKit標準の自動クラスタリング(近接ピンをまとめて件数表示し、
+/// 拡大すると自動的に分離する)を利用する。SwiftUI標準の`Map`にはクラスタリングAPIがないため、
+/// `MKMapView`をUIViewRepresentableでラップしている。
 private struct ManholeMapRepresentable: UIViewRepresentable {
     var manholes: [Manhole]
     var nearbyManholeId: String?
@@ -89,22 +89,50 @@ private struct ManholeMapRepresentable: UIViewRepresentable {
                 .map { ManholeAnnotation(manhole: $0) }
             mapView.addAnnotations(toAdd)
         }
-
-        // チェックイン圏内(近接)の色分けは、ピンを作り直さずに既存ビューの画像だけ更新する(頻繁に変わるため)。
-        for annotation in mapView.annotations {
-            guard let manholeAnnotation = annotation as? ManholeAnnotation,
-                  let view = mapView.view(for: manholeAnnotation) else { continue }
-            view.image = Self.pinImage(isNearby: manholeAnnotation.manhole.id == nearbyManholeId)
-        }
     }
 
-    /// 位置を示す個別ピン。`MKMarkerAnnotationView`の吹き出し(不透明背景+白抜きグリフ)は使わず、
-    /// 透明背景のSF Symbol画像をそのままピンとして使う。
-    fileprivate static func pinImage(isNearby: Bool) -> UIImage? {
-        let configuration = UIImage.SymbolConfiguration(pointSize: 30, weight: .semibold)
-        let tint: UIColor = isNearby ? .systemGreen : .systemBlue
-        return UIImage(systemName: "mappin", withConfiguration: configuration)?
-            .withTintColor(tint, renderingMode: .alwaysOriginal)
+    /// 位置を示す個別ピン画像(`Assets.xcassets/MapPin`、透明背景)を指定の高さにリサイズして返す。
+    fileprivate static let pinImage: UIImage? = {
+        guard let original = UIImage(named: "MapPin") else { return nil }
+        let targetHeight: CGFloat = 22
+        let scale = targetHeight / original.size.height
+        let targetSize = CGSize(width: original.size.width * scale, height: targetHeight)
+        let renderer = UIGraphicsImageRenderer(size: targetSize)
+        return renderer.image { _ in
+            original.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+    }()
+
+    /// クラスタ(近接ピンのまとめ)バッジ画像。細い黒枠付きの円+件数。
+    fileprivate static func clusterImage(count: Int) -> UIImage {
+        let diameter: CGFloat = 32
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: diameter, height: diameter))
+        return renderer.image { _ in
+            let strokeWidth: CGFloat = 1.5
+            let circleRect = CGRect(x: strokeWidth / 2, y: strokeWidth / 2, width: diameter - strokeWidth, height: diameter - strokeWidth)
+            let path = UIBezierPath(ovalIn: circleRect)
+            UIColor.systemBlue.setFill()
+            path.fill()
+            UIColor.black.setStroke()
+            path.lineWidth = strokeWidth
+            path.stroke()
+
+            let text = "\(count)" as NSString
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: UIFont.boldSystemFont(ofSize: 13),
+                .foregroundColor: UIColor.white
+            ]
+            let textSize = text.size(withAttributes: attributes)
+            text.draw(
+                in: CGRect(
+                    x: (diameter - textSize.width) / 2,
+                    y: (diameter - textSize.height) / 2,
+                    width: textSize.width,
+                    height: textSize.height
+                ),
+                withAttributes: attributes
+            )
+        }
     }
 
     func makeCoordinator() -> Coordinator {
@@ -123,11 +151,11 @@ private struct ManholeMapRepresentable: UIViewRepresentable {
 
             if let cluster = annotation as? MKClusterAnnotation {
                 let identifier = "manholeCluster"
-                let view = (mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? MKMarkerAnnotationView)
-                    ?? MKMarkerAnnotationView(annotation: cluster, reuseIdentifier: identifier)
+                let view = (mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? MKAnnotationView)
+                    ?? MKAnnotationView(annotation: cluster, reuseIdentifier: identifier)
                 view.annotation = cluster
-                view.markerTintColor = .systemBlue
                 view.canShowCallout = false
+                view.image = ManholeMapRepresentable.clusterImage(count: cluster.memberAnnotations.count)
                 return view
             }
 
@@ -139,7 +167,7 @@ private struct ManholeMapRepresentable: UIViewRepresentable {
             view.clusteringIdentifier = "manhole"
             view.displayPriority = .defaultLow
             view.canShowCallout = false
-            let image = ManholeMapRepresentable.pinImage(isNearby: manholeAnnotation.manhole.id == parent.nearbyManholeId)
+            let image = ManholeMapRepresentable.pinImage
             view.image = image
             view.centerOffset = CGPoint(x: 0, y: -(image?.size.height ?? 0) / 2)
             return view
