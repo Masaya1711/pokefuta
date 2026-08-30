@@ -17,7 +17,7 @@ final class AuthService: ObservableObject {
     @Published var backgroundCheckInEnabled: Bool = false
     @Published private(set) var userRecordName: String?
 
-    private let container = CKContainer.default()
+    private let container = CKContainer(identifier: AppConfig.cloudKitContainerIdentifier)
 
     var isSignedIn: Bool { state == .ready }
 

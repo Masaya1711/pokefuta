@@ -6,7 +6,7 @@ final class CheckinHistoryService: ObservableObject {
     @Published var checkins: [Checkin] = []
     @Published var errorMessage: String?
 
-    private let db = CKContainer.default().publicCloudDatabase
+    private let db = CKContainer(identifier: AppConfig.cloudKitContainerIdentifier).publicCloudDatabase
 
     func refresh(ownerRecordName: String) async {
         let predicate = NSPredicate(format: "ownerRecordName == %@", ownerRecordName)

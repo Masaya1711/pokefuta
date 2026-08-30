@@ -2,7 +2,7 @@ import Foundation
 import CloudKit
 
 struct PhotoUploadService {
-    private let db = CKContainer.default().publicCloudDatabase
+    private let db = CKContainer(identifier: AppConfig.cloudKitContainerIdentifier).publicCloudDatabase
 
     /// チェックイン写真をCloudKitの`ManholePhoto`レコードとして保存する(CKAsset)。
     func uploadCheckinPhoto(manholeId: String, ownerRecordName: String, imageData: Data) async throws {

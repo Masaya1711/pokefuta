@@ -8,7 +8,7 @@ final class ManholeDetailService: ObservableObject {
     @Published var errorMessage: String?
 
     let manholeId: String
-    private let db = CKContainer.default().publicCloudDatabase
+    private let db = CKContainer(identifier: AppConfig.cloudKitContainerIdentifier).publicCloudDatabase
 
     init(manholeId: String) {
         self.manholeId = manholeId
