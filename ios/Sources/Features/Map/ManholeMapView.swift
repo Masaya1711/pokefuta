@@ -4,6 +4,7 @@ import MapKit
 struct ManholeMapView: View {
     @EnvironmentObject private var manholeRepository: ManholeRepository
     @EnvironmentObject private var locationManager: LocationManager
+    @EnvironmentObject private var checkinHistoryService: CheckinHistoryService
 
     @State private var path = NavigationPath()
     @State private var previewManhole: Manhole?
@@ -13,6 +14,7 @@ struct ManholeMapView: View {
             ManholeMapRepresentable(
                 manholes: manholeRepository.manholes,
                 nearbyManholeId: locationManager.nearbyManholeId,
+                checkedInManholeIds: checkinHistoryService.checkedInManholeIds,
                 onSelectManhole: { previewManhole = $0 }
             )
             .ignoresSafeArea(edges: .bottom)
@@ -54,7 +56,15 @@ struct ManholeMapView: View {
 private struct ManholeMapRepresentable: UIViewRepresentable {
     var manholes: [Manhole]
     var nearbyManholeId: String?
+    var checkedInManholeIds: Set<String>
     var onSelectManhole: (Manhole) -> Void
+
+    /// チェックイン済みは赤、チェックイン可能圏内は黄色、それ以外は元画像の色のまま。
+    func pinTint(for manholeId: String) -> UIColor? {
+        if checkedInManholeIds.contains(manholeId) { return .systemRed }
+        if manholeId == nearbyManholeId { return .systemYellow }
+        return nil
+    }
 
     func makeUIView(context: Context) -> MKMapView {
         let mapView = MKMapView()
@@ -89,10 +99,17 @@ private struct ManholeMapRepresentable: UIViewRepresentable {
                 .map { ManholeAnnotation(manhole: $0) }
             mapView.addAnnotations(toAdd)
         }
+
+        // 近接/チェックイン済みの色分けは、ピンを作り直さずに既存ビューの画像だけ更新する(頻繁に変わるため)。
+        for annotation in mapView.annotations {
+            guard let manholeAnnotation = annotation as? ManholeAnnotation,
+                  let view = mapView.view(for: manholeAnnotation) else { continue }
+            view.image = Self.pinImage(tint: pinTint(for: manholeAnnotation.manhole.id))
+        }
     }
 
     /// 位置を示す個別ピン画像(`Assets.xcassets/MapPin`、透明背景)を指定の高さにリサイズして返す。
-    fileprivate static let pinImage: UIImage? = {
+    private static let basePinImage: UIImage? = {
         guard let original = UIImage(named: "MapPin") else { return nil }
         let targetHeight: CGFloat = 22
         let scale = targetHeight / original.size.height
@@ -102,6 +119,11 @@ private struct ManholeMapRepresentable: UIViewRepresentable {
             original.draw(in: CGRect(origin: .zero, size: targetSize))
         }
     }()
+
+    fileprivate static func pinImage(tint: UIColor?) -> UIImage? {
+        guard let tint else { return basePinImage }
+        return basePinImage?.withTintColor(tint, renderingMode: .alwaysOriginal)
+    }
 
     /// クラスタ(近接ピンのまとめ)バッジ画像。細い黒枠付きの円+件数。
     fileprivate static func clusterImage(count: Int) -> UIImage {
@@ -167,7 +189,7 @@ private struct ManholeMapRepresentable: UIViewRepresentable {
             view.clusteringIdentifier = "manhole"
             view.displayPriority = .defaultLow
             view.canShowCallout = false
-            let image = ManholeMapRepresentable.pinImage
+            let image = ManholeMapRepresentable.pinImage(tint: parent.pinTint(for: manholeAnnotation.manhole.id))
             view.image = image
             view.centerOffset = CGPoint(x: 0, y: -(image?.size.height ?? 0) / 2)
             return view

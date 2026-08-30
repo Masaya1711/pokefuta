@@ -5,6 +5,7 @@ struct PokeHutaApp: App {
     @StateObject private var authService = AuthService()
     @StateObject private var manholeRepository = ManholeRepository()
     @StateObject private var locationManager = LocationManager()
+    @StateObject private var checkinHistoryService = CheckinHistoryService()
 
     var body: some Scene {
         WindowGroup {
@@ -12,6 +13,7 @@ struct PokeHutaApp: App {
                 .environmentObject(authService)
                 .environmentObject(manholeRepository)
                 .environmentObject(locationManager)
+                .environmentObject(checkinHistoryService)
         }
     }
 }

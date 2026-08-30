@@ -1,8 +1,10 @@
 import SwiftUI
 
 struct MainTabView: View {
+    @EnvironmentObject private var authService: AuthService
     @EnvironmentObject private var manholeRepository: ManholeRepository
     @EnvironmentObject private var locationManager: LocationManager
+    @EnvironmentObject private var checkinHistoryService: CheckinHistoryService
 
     var body: some View {
         TabView {
@@ -17,6 +19,9 @@ struct MainTabView: View {
         }
         .task {
             await manholeRepository.load()
+            if let ownerRecordName = authService.userRecordName {
+                await checkinHistoryService.refresh(ownerRecordName: ownerRecordName)
+            }
         }
         .onAppear {
             locationManager.requestForegroundAuthorization()

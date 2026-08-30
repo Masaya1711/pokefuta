@@ -7,6 +7,7 @@ struct CheckInSection: View {
 
     @EnvironmentObject private var authService: AuthService
     @EnvironmentObject private var locationManager: LocationManager
+    @EnvironmentObject private var checkinHistoryService: CheckinHistoryService
 
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var pendingImageData: Data?
@@ -103,6 +104,7 @@ struct CheckInSection: View {
                     distanceMeters: distance
                 )
                 await detailService.refresh()
+                await checkinHistoryService.refresh(ownerRecordName: ownerRecordName)
                 didCheckIn = true
             } catch {
                 errorMessage = error.localizedDescription

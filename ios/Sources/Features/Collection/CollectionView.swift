@@ -3,7 +3,7 @@ import SwiftUI
 struct CollectionView: View {
     @EnvironmentObject private var authService: AuthService
     @EnvironmentObject private var manholeRepository: ManholeRepository
-    @StateObject private var historyService = CheckinHistoryService()
+    @EnvironmentObject private var historyService: CheckinHistoryService
 
     private var checkedInManholes: [Manhole] {
         manholeRepository.manholes.filter { historyService.checkedInManholeIds.contains($0.id) }
