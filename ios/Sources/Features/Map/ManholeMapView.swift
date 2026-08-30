@@ -59,11 +59,11 @@ private struct ManholeMapRepresentable: UIViewRepresentable {
     var checkedInManholeIds: Set<String>
     var onSelectManhole: (Manhole) -> Void
 
-    /// チェックイン済みは赤、チェックイン可能圏内は黄色、それ以外は元画像の色のまま。
-    func pinTint(for manholeId: String) -> UIColor? {
+    /// チェックイン済みは赤、チェックイン可能圏内は黄色、それ以外は濃い青。
+    func pinTint(for manholeId: String) -> UIColor {
         if checkedInManholeIds.contains(manholeId) { return .systemRed }
         if manholeId == nearbyManholeId { return .systemYellow }
-        return nil
+        return .systemBlue
     }
 
     func makeUIView(context: Context) -> MKMapView {
@@ -111,7 +111,7 @@ private struct ManholeMapRepresentable: UIViewRepresentable {
     /// 位置を示す個別ピン画像(`Assets.xcassets/MapPin`、透明背景)を指定の高さにリサイズして返す。
     private static let basePinImage: UIImage? = {
         guard let original = UIImage(named: "MapPin") else { return nil }
-        let targetHeight: CGFloat = 22
+        let targetHeight: CGFloat = 32
         let scale = targetHeight / original.size.height
         let targetSize = CGSize(width: original.size.width * scale, height: targetHeight)
         let renderer = UIGraphicsImageRenderer(size: targetSize)
@@ -120,9 +120,8 @@ private struct ManholeMapRepresentable: UIViewRepresentable {
         }
     }()
 
-    fileprivate static func pinImage(tint: UIColor?) -> UIImage? {
-        guard let tint else { return basePinImage }
-        return basePinImage?.withTintColor(tint, renderingMode: .alwaysOriginal)
+    fileprivate static func pinImage(tint: UIColor) -> UIImage? {
+        basePinImage?.withTintColor(tint, renderingMode: .alwaysOriginal)
     }
 
     /// クラスタ(近接ピンのまとめ)バッジ画像。細い黒枠付きの円+件数。
