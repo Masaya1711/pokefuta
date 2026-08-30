@@ -6,13 +6,14 @@ struct ManholeMapView: View {
     @EnvironmentObject private var locationManager: LocationManager
 
     @State private var path = NavigationPath()
+    @State private var previewManhole: Manhole?
 
     var body: some View {
         NavigationStack(path: $path) {
             ManholeMapRepresentable(
                 manholes: manholeRepository.manholes,
                 nearbyManholeId: locationManager.nearbyManholeId,
-                onSelect: { path.append($0) }
+                onSelectManhole: { previewManhole = $0 }
             )
             .ignoresSafeArea(edges: .bottom)
             .navigationTitle("ポケふたマップ")
@@ -27,6 +28,21 @@ struct ManholeMapView: View {
                         .padding(.top, 8)
                 }
             }
+            .overlay(alignment: .bottom) {
+                if let previewManhole {
+                    ManholePreviewCard(
+                        manhole: previewManhole,
+                        onOpenDetail: {
+                            path.append(previewManhole)
+                            self.previewManhole = nil
+                        },
+                        onClose: { self.previewManhole = nil }
+                    )
+                    .padding()
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+            .animation(.spring(duration: 0.25), value: previewManhole?.id)
         }
     }
 }
@@ -38,7 +54,7 @@ struct ManholeMapView: View {
 private struct ManholeMapRepresentable: UIViewRepresentable {
     var manholes: [Manhole]
     var nearbyManholeId: String?
-    var onSelect: (Manhole) -> Void
+    var onSelectManhole: (Manhole) -> Void
 
     func makeUIView(context: Context) -> MKMapView {
         let mapView = MKMapView()
@@ -122,18 +138,30 @@ private struct ManholeMapRepresentable: UIViewRepresentable {
             mapView.deselectAnnotation(annotation, animated: false)
 
             if let cluster = annotation as? MKClusterAnnotation {
-                var region = mapView.region
-                region.center = cluster.coordinate
-                region.span = MKCoordinateSpan(
-                    latitudeDelta: region.span.latitudeDelta / 4,
-                    longitudeDelta: region.span.longitudeDelta / 4
-                )
-                mapView.setRegion(region, animated: true)
+                if let region = Self.regionThatFits(coordinates: cluster.memberAnnotations.map(\.coordinate)) {
+                    mapView.setRegion(region, animated: true)
+                }
                 return
             }
 
             guard let manholeAnnotation = annotation as? ManholeAnnotation else { return }
-            parent.onSelect(manholeAnnotation.manhole)
+            parent.onSelectManhole(manholeAnnotation.manhole)
+        }
+
+        /// クラスタタップ時、内包する全ピンがバラけて見える範囲まで一気にズームする。
+        private static func regionThatFits(coordinates: [CLLocationCoordinate2D]) -> MKCoordinateRegion? {
+            guard !coordinates.isEmpty else { return nil }
+
+            var rect = MKMapRect.null
+            for coordinate in coordinates {
+                let point = MKMapPoint(coordinate)
+                rect = rect.union(MKMapRect(x: point.x, y: point.y, width: 0, height: 0))
+            }
+
+            let paddedWidth = max(rect.width * 1.6, 800)
+            let paddedHeight = max(rect.height * 1.6, 800)
+            let padded = rect.insetBy(dx: (rect.width - paddedWidth) / 2, dy: (rect.height - paddedHeight) / 2)
+            return MKCoordinateRegion(padded)
         }
     }
 }
