@@ -42,7 +42,7 @@ workflows:
       - name: Bump build number
         script: |
           cd ios
-          agvtool new-version -all $CM_BUILD_NUMBER
+          agvtool new-version -all $PROJECT_BUILD_NUMBER
 
       - name: Build .ipa
         script: |
