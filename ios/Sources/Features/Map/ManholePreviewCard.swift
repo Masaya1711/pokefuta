@@ -22,8 +22,14 @@ struct ManholePreviewCard: View {
                     Text(manhole.displayTitle)
                         .font(.headline)
                         .foregroundStyle(.primary)
+                    if !manhole.pokemonList.isEmpty {
+                        Text(manhole.pokemonList.map(\.name).joined(separator: "、"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
                     Text(manhole.address)
-                        .font(.caption)
+                        .font(.caption2)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }

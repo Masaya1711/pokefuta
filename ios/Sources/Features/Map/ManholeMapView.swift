@@ -47,10 +47,10 @@ struct ManholeMapView: View {
     }
 }
 
-/// マーカーは`MKMarkerAnnotationView`(ネイティブの吹き出し型ピン、透明背景・単色塗り)を使い、
-/// `clusteringIdentifier`を設定することでMapKit標準の自動クラスタリング(近接ピンをまとめて件数表示し、
-/// 拡大すると自動的に分離する)を利用する。SwiftUI標準の`Map`にはクラスタリングAPIがないため、
-/// `MKMapView`をUIViewRepresentableでラップしている。
+/// 個別ピンは透明背景のSF Symbol画像(`pinImage`)、クラスタ(まとまり)は`MKMarkerAnnotationView`の
+/// 件数バッジ表示を使う。`clusteringIdentifier`を設定することでMapKit標準の自動クラスタリング
+/// (近接ピンをまとめて件数表示し、拡大すると自動的に分離する)を利用する。SwiftUI標準の`Map`には
+/// クラスタリングAPIがないため、`MKMapView`をUIViewRepresentableでラップしている。
 private struct ManholeMapRepresentable: UIViewRepresentable {
     var manholes: [Manhole]
     var nearbyManholeId: String?
@@ -90,12 +90,21 @@ private struct ManholeMapRepresentable: UIViewRepresentable {
             mapView.addAnnotations(toAdd)
         }
 
-        // チェックイン圏内(近接)の色分けは、ピンを作り直さずに既存ビューの色だけ更新する(頻繁に変わるため)。
+        // チェックイン圏内(近接)の色分けは、ピンを作り直さずに既存ビューの画像だけ更新する(頻繁に変わるため)。
         for annotation in mapView.annotations {
             guard let manholeAnnotation = annotation as? ManholeAnnotation,
-                  let view = mapView.view(for: manholeAnnotation) as? MKMarkerAnnotationView else { continue }
-            view.markerTintColor = manholeAnnotation.manhole.id == nearbyManholeId ? .systemGreen : .systemBlue
+                  let view = mapView.view(for: manholeAnnotation) else { continue }
+            view.image = Self.pinImage(isNearby: manholeAnnotation.manhole.id == nearbyManholeId)
         }
+    }
+
+    /// 位置を示す個別ピン。`MKMarkerAnnotationView`の吹き出し(不透明背景+白抜きグリフ)は使わず、
+    /// 透明背景のSF Symbol画像をそのままピンとして使う。
+    fileprivate static func pinImage(isNearby: Bool) -> UIImage? {
+        let configuration = UIImage.SymbolConfiguration(pointSize: 30, weight: .semibold)
+        let tint: UIColor = isNearby ? .systemGreen : .systemBlue
+        return UIImage(systemName: "mappin", withConfiguration: configuration)?
+            .withTintColor(tint, renderingMode: .alwaysOriginal)
     }
 
     func makeCoordinator() -> Coordinator {
@@ -124,13 +133,15 @@ private struct ManholeMapRepresentable: UIViewRepresentable {
 
             guard let manholeAnnotation = annotation as? ManholeAnnotation else { return nil }
             let identifier = "manhole"
-            let view = (mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? MKMarkerAnnotationView)
-                ?? MKMarkerAnnotationView(annotation: manholeAnnotation, reuseIdentifier: identifier)
+            let view = (mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? MKAnnotationView)
+                ?? MKAnnotationView(annotation: manholeAnnotation, reuseIdentifier: identifier)
             view.annotation = manholeAnnotation
             view.clusteringIdentifier = "manhole"
             view.displayPriority = .defaultLow
             view.canShowCallout = false
-            view.markerTintColor = manholeAnnotation.manhole.id == parent.nearbyManholeId ? .systemGreen : .systemBlue
+            let image = ManholeMapRepresentable.pinImage(isNearby: manholeAnnotation.manhole.id == parent.nearbyManholeId)
+            view.image = image
+            view.centerOffset = CGPoint(x: 0, y: -(image?.size.height ?? 0) / 2)
             return view
         }
 
