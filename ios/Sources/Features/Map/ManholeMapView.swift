@@ -65,7 +65,7 @@ private struct ManholeMapRepresentable: UIViewRepresentable {
     /// 現在地からチェックイン可能な圏内のピンに使う明るい水色。
     private static let nearbyPinColor = UIColor(red: 0.35, green: 0.84, blue: 1.0, alpha: 1.0)
     /// チェックインはしていないが写真だけ投稿済みのピンに使う明るい緑色。
-    private static let photoOnlyPinColor = UIColor(red: 0.40, green: 0.90, blue: 0.50, alpha: 1.0)
+    private static let photoOnlyPinColor = UIColor(red: 0.20, green: 0.85, blue: 0.30, alpha: 1.0)
 
     /// チェックイン済みは赤、現在地からチェックイン可能圏内は明るい水色、
     /// チェックインせず写真だけ投稿済みは明るい緑、それ以外は濃い青。
@@ -131,17 +131,17 @@ private struct ManholeMapRepresentable: UIViewRepresentable {
     }()
 
     /// ピン画像を指定色で塗り替える。
-    /// `withTintColor`はテンプレート画像でないと着色されないことがあるため、
-    /// 画像を描画したうえで`.sourceIn`で塗りつぶし、不透明部分だけを確実に単色化する。
+    /// `pin.png`自体がRGB(50,50,150)の紺色を持つ画像のため、`withTintColor`では
+    /// 元の色と指定色が混ざってしまう(赤が暗い赤紫に、緑が水色に見える)。
+    /// 先に単色で全面を塗り、画像のアルファで型抜きすることで、混色を原理的に起こさない。
     fileprivate static func pinImage(tint: UIColor) -> UIImage? {
         guard let base = basePinImage else { return nil }
         let renderer = UIGraphicsImageRenderer(size: base.size)
         return renderer.image { context in
             let rect = CGRect(origin: .zero, size: base.size)
-            base.draw(in: rect)
-            context.cgContext.setBlendMode(.sourceIn)
-            tint.setFill()
+            context.cgContext.setFillColor(tint.cgColor)
             context.cgContext.fill(rect)
+            base.draw(in: rect, blendMode: .destinationIn, alpha: 1)
         }
     }
 
