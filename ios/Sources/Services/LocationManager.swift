@@ -9,8 +9,19 @@ import UserNotifications
 /// ジオフェンスとして再登録し直す方式で全国規模のポケふたに対応する。
 @MainActor
 final class LocationManager: NSObject, ObservableObject {
-    static let checkInThresholdMeters: CLLocationDistance = 100
+    /// チェックイン可能と判定する距離。試験運用のため一時的に半径20kmまで広げている。
+    static let checkInThresholdMeters: CLLocationDistance = 20_000
+    /// バックグラウンドのジオフェンス半径。こちらは「現地に着いた」通知のための値なので
+    /// `checkInThresholdMeters`とは分離し、実際の設置場所付近の距離を維持する。
+    private static let geofenceRadiusMeters: CLLocationDistance = 100
     private static let maxMonitoredRegions = 20
+
+    /// UI表示用に、しきい値をm/km単位で整形した文字列。
+    static var checkInThresholdDisplayText: String {
+        checkInThresholdMeters >= 1000
+            ? String(format: "%.0fkm", checkInThresholdMeters / 1000)
+            : String(format: "%.0fm", checkInThresholdMeters)
+    }
 
     @Published var currentLocation: CLLocation?
     @Published var authorizationStatus: CLAuthorizationStatus = .notDetermined
@@ -83,7 +94,7 @@ final class LocationManager: NSObject, ObservableObject {
         for entry in nearest {
             let region = CLCircularRegion(
                 center: entry.coordinate,
-                radius: Self.checkInThresholdMeters,
+                radius: Self.geofenceRadiusMeters,
                 identifier: entry.id
             )
             region.notifyOnEntry = true
