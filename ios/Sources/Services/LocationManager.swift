@@ -14,8 +14,8 @@ final class LocationManager: NSObject, ObservableObject {
 
     @Published var currentLocation: CLLocation?
     @Published var authorizationStatus: CLAuthorizationStatus = .notDetermined
-    /// フォアグラウンドでチェックイン可能な距離内にいるポケふたのID
-    @Published var nearbyManholeId: String?
+    /// フォアグラウンドでチェックイン可能な距離内にあるポケふたのID(圏内の全件)
+    @Published var nearbyManholeIds: Set<String> = []
     /// バックグラウンドジオフェンスで検知されたポケふたのID(アプリ側でチェックイン確認UIを出すために消費する)
     @Published var regionEnteredManholeId: String?
 
@@ -94,21 +94,17 @@ final class LocationManager: NSObject, ObservableObject {
 
     private func evaluateForegroundProximity() {
         guard let current = currentLocation else {
-            nearbyManholeId = nil
+            nearbyManholeIds = []
             return
         }
 
-        let nearest = manholes
-            .compactMap { manhole -> (id: String, distance: CLLocationDistance)? in
-                let id = manhole.id
-                let distance = current.distance(from: CLLocation(latitude: manhole.lat, longitude: manhole.lng))
-                return (id, distance)
-            }
-            .min { $0.distance < $1.distance }
-
-        nearbyManholeId = (nearest?.distance ?? .greatestFiniteMagnitude) <= Self.checkInThresholdMeters
-            ? nearest?.id
-            : nil
+        // チェックインの可否は各ポケふたごとの距離で判定するため、最も近い1件ではなく
+        // しきい値内にある全件を保持する。
+        nearbyManholeIds = Set(
+            manholes
+                .filter { current.distance(from: CLLocation(latitude: $0.lat, longitude: $0.lng)) <= Self.checkInThresholdMeters }
+                .map(\.id)
+        )
     }
 
     func distance(to manhole: Manhole) -> CLLocationDistance? {
