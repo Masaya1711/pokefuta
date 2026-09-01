@@ -130,8 +130,19 @@ private struct ManholeMapRepresentable: UIViewRepresentable {
         }
     }()
 
+    /// ピン画像を指定色で塗り替える。
+    /// `withTintColor`はテンプレート画像でないと着色されないことがあるため、
+    /// 画像を描画したうえで`.sourceIn`で塗りつぶし、不透明部分だけを確実に単色化する。
     fileprivate static func pinImage(tint: UIColor) -> UIImage? {
-        basePinImage?.withTintColor(tint, renderingMode: .alwaysOriginal)
+        guard let base = basePinImage else { return nil }
+        let renderer = UIGraphicsImageRenderer(size: base.size)
+        return renderer.image { context in
+            let rect = CGRect(origin: .zero, size: base.size)
+            base.draw(in: rect)
+            context.cgContext.setBlendMode(.sourceIn)
+            tint.setFill()
+            context.cgContext.fill(rect)
+        }
     }
 
     /// クラスタ(近接ピンのまとめ)バッジ画像。細い黒枠付きの円+件数。
