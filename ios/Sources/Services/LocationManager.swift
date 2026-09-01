@@ -9,7 +9,7 @@ import UserNotifications
 /// ジオフェンスとして再登録し直す方式で全国規模のポケふたに対応する。
 @MainActor
 final class LocationManager: NSObject, ObservableObject {
-    static let checkInThresholdMeters: CLLocationDistance = 100
+    static let checkInThresholdMeters: CLLocationDistance = 20_000
     private static let maxMonitoredRegions = 20
 
     @Published var currentLocation: CLLocation?

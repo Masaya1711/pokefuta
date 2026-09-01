@@ -13,6 +13,7 @@ struct CheckInSection: View {
     @State private var pendingImageData: Data?
     @State private var showCamera = false
     @State private var isSubmitting = false
+    @State private var isUploadingPhoto = false
     @State private var errorMessage: String?
     @State private var didCheckIn = false
 
@@ -50,6 +51,21 @@ struct CheckInSection: View {
             }
             .font(.subheadline)
 
+            // 写真の投稿はチェックイン可否と切り離し、距離に関係なく行えるようにする。
+            if pendingImageData != nil {
+                Button {
+                    uploadPhoto()
+                } label: {
+                    if isUploadingPhoto {
+                        ProgressView()
+                    } else {
+                        Label("この写真を投稿する", systemImage: "square.and.arrow.up")
+                    }
+                }
+                .buttonStyle(.bordered)
+                .disabled(isUploadingPhoto)
+            }
+
             Button {
                 checkIn()
             } label: {
@@ -80,6 +96,29 @@ struct CheckInSection: View {
         }
         .sheet(isPresented: $showCamera) {
             CameraPicker(imageData: $pendingImageData)
+        }
+    }
+
+    /// チェックインせずに写真だけを投稿する。
+    private func uploadPhoto() {
+        guard let ownerRecordName = authService.userRecordName, let imageData = pendingImageData else { return }
+        isUploadingPhoto = true
+        errorMessage = nil
+
+        Task {
+            do {
+                try await PhotoUploadService().uploadCheckinPhoto(
+                    manholeId: manhole.id,
+                    ownerRecordName: ownerRecordName,
+                    imageData: imageData
+                )
+                await detailService.refresh()
+                pendingImageData = nil
+                selectedPhotoItem = nil
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+            isUploadingPhoto = false
         }
     }
 
