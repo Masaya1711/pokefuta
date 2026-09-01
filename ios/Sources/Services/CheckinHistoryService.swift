@@ -10,14 +10,18 @@ final class CheckinHistoryService: ObservableObject {
 
     func refresh(ownerRecordName: String) async {
         let predicate = NSPredicate(format: "ownerRecordName == %@", ownerRecordName)
+        // CloudKitはスキーマ側でSortable指定がない項目で並び替えるとクエリ全体が失敗するため、
+        // 並び替えはサーバーに要求せずアプリ側で行う。
         let query = CKQuery(recordType: "Checkin", predicate: predicate)
-        query.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
         do {
             let (results, _) = try await db.records(matching: query)
-            checkins = results.compactMap { _, result -> Checkin? in
-                guard case .success(let record) = result else { return nil }
-                return Checkin(record: record)
-            }
+            checkins = results
+                .compactMap { _, result -> Checkin? in
+                    guard case .success(let record) = result else { return nil }
+                    return Checkin(record: record)
+                }
+                .sorted { ($0.checkedInAt ?? .distantPast) > ($1.checkedInAt ?? .distantPast) }
+            errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
         }

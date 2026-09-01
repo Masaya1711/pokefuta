@@ -8,6 +8,7 @@ struct CheckInSection: View {
     @EnvironmentObject private var authService: AuthService
     @EnvironmentObject private var locationManager: LocationManager
     @EnvironmentObject private var checkinHistoryService: CheckinHistoryService
+    @EnvironmentObject private var photoHistoryService: PhotoHistoryService
 
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var pendingImageData: Data?
@@ -113,6 +114,7 @@ struct CheckInSection: View {
                     imageData: imageData
                 )
                 await detailService.refresh()
+                await photoHistoryService.refresh(ownerRecordName: ownerRecordName)
                 pendingImageData = nil
                 selectedPhotoItem = nil
             } catch {

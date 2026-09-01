@@ -5,6 +5,7 @@ struct ManholeMapView: View {
     @EnvironmentObject private var manholeRepository: ManholeRepository
     @EnvironmentObject private var locationManager: LocationManager
     @EnvironmentObject private var checkinHistoryService: CheckinHistoryService
+    @EnvironmentObject private var photoHistoryService: PhotoHistoryService
 
     @State private var path = NavigationPath()
     @State private var previewManhole: Manhole?
@@ -15,6 +16,7 @@ struct ManholeMapView: View {
                 manholes: manholeRepository.manholes,
                 nearbyManholeId: locationManager.nearbyManholeId,
                 checkedInManholeIds: checkinHistoryService.checkedInManholeIds,
+                photoManholeIds: photoHistoryService.photoManholeIds,
                 onSelectManhole: { previewManhole = $0 }
             )
             .ignoresSafeArea(edges: .bottom)
@@ -57,12 +59,20 @@ private struct ManholeMapRepresentable: UIViewRepresentable {
     var manholes: [Manhole]
     var nearbyManholeId: String?
     var checkedInManholeIds: Set<String>
+    var photoManholeIds: Set<String>
     var onSelectManhole: (Manhole) -> Void
 
-    /// チェックイン済みは赤、チェックイン可能圏内は黄色、それ以外は濃い青。
+    /// 現在地からチェックイン可能な圏内のピンに使う明るい水色。
+    private static let nearbyPinColor = UIColor(red: 0.35, green: 0.84, blue: 1.0, alpha: 1.0)
+    /// チェックインはしていないが写真だけ投稿済みのピンに使う明るい緑色。
+    private static let photoOnlyPinColor = UIColor(red: 0.40, green: 0.90, blue: 0.50, alpha: 1.0)
+
+    /// チェックイン済みは赤、現在地からチェックイン可能圏内は明るい水色、
+    /// チェックインせず写真だけ投稿済みは明るい緑、それ以外は濃い青。
     func pinTint(for manholeId: String) -> UIColor {
         if checkedInManholeIds.contains(manholeId) { return .systemRed }
-        if manholeId == nearbyManholeId { return .systemYellow }
+        if manholeId == nearbyManholeId { return Self.nearbyPinColor }
+        if photoManholeIds.contains(manholeId) { return Self.photoOnlyPinColor }
         return .systemBlue
     }
 

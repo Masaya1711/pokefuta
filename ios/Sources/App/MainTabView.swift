@@ -5,6 +5,7 @@ struct MainTabView: View {
     @EnvironmentObject private var manholeRepository: ManholeRepository
     @EnvironmentObject private var locationManager: LocationManager
     @EnvironmentObject private var checkinHistoryService: CheckinHistoryService
+    @EnvironmentObject private var photoHistoryService: PhotoHistoryService
 
     var body: some View {
         TabView {
@@ -21,6 +22,7 @@ struct MainTabView: View {
             await manholeRepository.load()
             if let ownerRecordName = authService.userRecordName {
                 await checkinHistoryService.refresh(ownerRecordName: ownerRecordName)
+                await photoHistoryService.refresh(ownerRecordName: ownerRecordName)
             }
         }
         .onAppear {

@@ -9,31 +9,41 @@ struct CollectionView: View {
         manholeRepository.manholes.filter { historyService.checkedInManholeIds.contains($0.id) }
     }
 
-    private var groupedByPrefecture: [(pref: String, manholes: [Manhole])] {
-        Dictionary(grouping: checkedInManholes, by: \.prefName)
-            .map { (pref: $0.key, manholes: $0.value) }
-            .sorted { $0.pref < $1.pref }
+    /// 同じポケふたに複数回チェックインしている場合は最新の日時を採用する。
+    private var checkedInAtById: [String: Date] {
+        var result: [String: Date] = [:]
+        for checkin in historyService.checkins {
+            guard let date = checkin.checkedInAt else { continue }
+            if let existing = result[checkin.manholeId], existing >= date { continue }
+            result[checkin.manholeId] = date
+        }
+        return result
     }
 
     var body: some View {
         NavigationStack {
             List {
                 Section {
-                    HStack {
-                        Text("収集済み")
-                        Spacer()
-                        Text("\(checkedInManholes.count) / \(manholeRepository.manholes.count)")
-                            .font(.title3.bold())
+                    NavigationLink {
+                        CheckedInListView(
+                            manholes: checkedInManholes,
+                            checkedInAtById: checkedInAtById
+                        )
+                    } label: {
+                        HStack {
+                            Text("収集済み")
+                            Spacer()
+                            Text("\(checkedInManholes.count) / \(manholeRepository.manholes.count)")
+                                .font(.title3.bold())
+                        }
                     }
                 }
 
-                ForEach(groupedByPrefecture, id: \.pref) { group in
-                    Section(group.pref) {
-                        ForEach(group.manholes) { manhole in
-                            NavigationLink(value: manhole) {
-                                Text(manhole.displayTitle)
-                            }
-                        }
+                if let errorMessage = historyService.errorMessage {
+                    Section {
+                        Text(errorMessage)
+                            .font(.caption)
+                            .foregroundStyle(.red)
                     }
                 }
             }
@@ -41,11 +51,13 @@ struct CollectionView: View {
             .navigationDestination(for: Manhole.self) { manhole in
                 ManholeDetailView(manhole: manhole)
             }
+            .refreshable { await refresh() }
         }
-        .task {
-            if let ownerRecordName = authService.userRecordName {
-                await historyService.refresh(ownerRecordName: ownerRecordName)
-            }
-        }
+        .task { await refresh() }
+    }
+
+    private func refresh() async {
+        guard let ownerRecordName = authService.userRecordName else { return }
+        await historyService.refresh(ownerRecordName: ownerRecordName)
     }
 }
