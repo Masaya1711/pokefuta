@@ -48,9 +48,6 @@ struct CollectionView: View {
                 }
             }
             .navigationTitle("コレクション")
-            .navigationDestination(for: Manhole.self) { manhole in
-                ManholeDetailView(manhole: manhole)
-            }
             .refreshable { await refresh() }
         }
         .task { await refresh() }

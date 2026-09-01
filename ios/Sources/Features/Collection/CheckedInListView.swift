@@ -61,7 +61,9 @@ struct CheckedInListView: View {
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(sortedManholes) { manhole in
-                    NavigationLink(value: manhole) {
+                    NavigationLink {
+                        ManholeDetailView(manhole: manhole)
+                    } label: {
                         row(for: manhole)
                     }
                 }
