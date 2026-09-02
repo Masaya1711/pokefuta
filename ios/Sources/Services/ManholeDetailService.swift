@@ -26,16 +26,19 @@ final class ManholeDetailService: ObservableObject {
         spots = await spotsResult
     }
 
+    // CloudKitはスキーマ側でSortable指定がない項目で並び替えるとクエリ全体が失敗するため、
+    // 並び替えはサーバーに要求せずアプリ側で行う。
     private func fetchPhotos() async -> [ManholePhoto] {
         let predicate = NSPredicate(format: "manholeId == %@", manholeId)
         let query = CKQuery(recordType: "ManholePhoto", predicate: predicate)
-        query.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
         do {
             let (results, _) = try await db.records(matching: query)
-            return results.compactMap { _, result -> ManholePhoto? in
-                guard case .success(let record) = result else { return nil }
-                return ManholePhoto(record: record)
-            }
+            return results
+                .compactMap { _, result -> ManholePhoto? in
+                    guard case .success(let record) = result else { return nil }
+                    return ManholePhoto(record: record)
+                }
+                .sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
         } catch {
             errorMessage = error.localizedDescription
             return []
@@ -45,13 +48,14 @@ final class ManholeDetailService: ObservableObject {
     private func fetchSpots() async -> [Spot] {
         let predicate = NSPredicate(format: "manholeId == %@", manholeId)
         let query = CKQuery(recordType: "Spot", predicate: predicate)
-        query.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
         do {
             let (results, _) = try await db.records(matching: query)
-            return results.compactMap { _, result -> Spot? in
-                guard case .success(let record) = result else { return nil }
-                return Spot(record: record)
-            }
+            return results
+                .compactMap { _, result -> Spot? in
+                    guard case .success(let record) = result else { return nil }
+                    return Spot(record: record)
+                }
+                .sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
         } catch {
             errorMessage = error.localizedDescription
             return []
