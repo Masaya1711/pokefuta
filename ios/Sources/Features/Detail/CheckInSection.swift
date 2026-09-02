@@ -113,6 +113,7 @@ struct CheckInSection: View {
                     ownerRecordName: ownerRecordName,
                     imageData: imageData
                 )
+                photoHistoryService.markUploaded(manholeId: manhole.id)
                 await detailService.refresh()
                 await photoHistoryService.refresh(ownerRecordName: ownerRecordName)
                 pendingImageData = nil
