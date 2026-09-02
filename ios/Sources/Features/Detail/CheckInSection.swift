@@ -20,8 +20,7 @@ struct CheckInSection: View {
 
     private var distance: Double? { locationManager.distance(to: manhole) }
     private var isWithinRange: Bool {
-        guard let distance else { return false }
-        return distance <= LocationManager.checkInThresholdMeters
+        locationManager.isWithinCheckInRange(of: manhole)
     }
 
     var body: some View {

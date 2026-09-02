@@ -11,6 +11,9 @@ import UserNotifications
 final class LocationManager: NSObject, ObservableObject {
     static let checkInThresholdMeters: CLLocationDistance = 20
     private static let maxMonitoredRegions = 20
+    /// GPSの誤差として許容する上限。測位が大きく乱れているときに、
+    /// 遠く離れた場所でチェックインが有効になってしまうのを防ぐ。
+    private static let maxAccuracyAllowanceMeters: CLLocationDistance = 100
 
     @Published var currentLocation: CLLocation?
     @Published var authorizationStatus: CLAuthorizationStatus = .notDetermined
@@ -93,18 +96,31 @@ final class LocationManager: NSObject, ObservableObject {
     }
 
     private func evaluateForegroundProximity() {
-        guard let current = currentLocation else {
+        guard currentLocation != nil else {
             nearbyManholeIds = []
             return
         }
 
         // チェックインの可否は各ポケふたごとの距離で判定するため、最も近い1件ではなく
         // しきい値内にある全件を保持する。
-        nearbyManholeIds = Set(
-            manholes
-                .filter { current.distance(from: CLLocation(latitude: $0.lat, longitude: $0.lng)) <= Self.checkInThresholdMeters }
-                .map(\.id)
-        )
+        nearbyManholeIds = Set(manholes.filter { isWithinCheckInRange(of: $0) }.map(\.id))
+    }
+
+    /// GPSの誤差半径を差し引いた実効距離。誤差が大きいときはその分だけ判定を緩める。
+    /// これがないと、設置場所の真上に立っていても測位のぶれでチェックインできないことがある。
+    func effectiveDistance(to manhole: Manhole) -> CLLocationDistance? {
+        guard let current = currentLocation else { return nil }
+        let distance = current.distance(from: CLLocation(latitude: manhole.lat, longitude: manhole.lng))
+        // horizontalAccuracyは負値のとき無効を意味する。
+        let accuracy = current.horizontalAccuracy >= 0
+            ? min(current.horizontalAccuracy, Self.maxAccuracyAllowanceMeters)
+            : 0
+        return max(distance - accuracy, 0)
+    }
+
+    func isWithinCheckInRange(of manhole: Manhole) -> Bool {
+        guard let effectiveDistance = effectiveDistance(to: manhole) else { return false }
+        return effectiveDistance <= Self.checkInThresholdMeters
     }
 
     func distance(to manhole: Manhole) -> CLLocationDistance? {
