@@ -22,7 +22,10 @@ struct MainTabView: View {
             await manholeRepository.load()
             if let ownerRecordName = authService.userRecordName {
                 await checkinHistoryService.refresh(ownerRecordName: ownerRecordName)
-                await photoHistoryService.refresh(ownerRecordName: ownerRecordName)
+                await photoHistoryService.refresh(
+                    ownerRecordName: ownerRecordName,
+                    manholeIds: manholeRepository.manholes.map(\.id)
+                )
             }
         }
         .onAppear {

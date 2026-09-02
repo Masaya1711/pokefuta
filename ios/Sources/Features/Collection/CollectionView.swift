@@ -83,6 +83,9 @@ struct CollectionView: View {
     private func refresh() async {
         guard let ownerRecordName = authService.userRecordName else { return }
         await historyService.refresh(ownerRecordName: ownerRecordName)
-        await photoHistoryService.refresh(ownerRecordName: ownerRecordName)
+        await photoHistoryService.refresh(
+            ownerRecordName: ownerRecordName,
+            manholeIds: manholeRepository.manholes.map(\.id)
+        )
     }
 }

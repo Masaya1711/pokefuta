@@ -115,7 +115,7 @@ struct CheckInSection: View {
                 )
                 photoHistoryService.markUploaded(manholeId: manhole.id)
                 await detailService.refresh()
-                await photoHistoryService.refresh(ownerRecordName: ownerRecordName)
+                await photoHistoryService.refresh(ownerRecordName: ownerRecordName, manholeIds: [manhole.id])
                 pendingImageData = nil
                 selectedPhotoItem = nil
             } catch {
