@@ -40,25 +40,41 @@ final class PhotoHistoryService: ObservableObject {
     }
 
     func refresh(ownerRecordName: String) async {
-        let predicate = NSPredicate(format: "ownerRecordName == %@", ownerRecordName)
-        let query = CKQuery(recordType: "ManholePhoto", predicate: predicate)
         do {
-            let (results, _) = try await db.records(matching: query, desiredKeys: ["manholeId"])
-            var dates: [String: Date] = [:]
-            for (_, result) in results {
-                guard case .success(let record) = result,
-                      let manholeId = record["manholeId"] as? String else { continue }
-                let date = record.creationDate ?? .distantPast
-                if let existing = dates[manholeId], existing >= date { continue }
-                dates[manholeId] = date
+            // `ownerRecordName`での絞り込みはQueryableインデックスが必要で、
+            // `ManholePhoto`には設定されていないことがある。失敗した場合は
+            // 全件を取得して端末側で自分のぶんだけ抽出する。
+            do {
+                let predicate = NSPredicate(format: "ownerRecordName == %@", ownerRecordName)
+                remoteDates = try await fetchDates(predicate: predicate, ownerRecordName: ownerRecordName)
+            } catch {
+                remoteDates = try await fetchDates(predicate: NSPredicate(value: true), ownerRecordName: ownerRecordName)
             }
-            remoteDates = dates
             errorMessage = nil
         } catch {
-            // 検索が失敗しても端末側の記録は残すため、色分けと一覧は維持される。
+            // どちらも失敗しても端末側の記録は残すため、色分けと一覧は維持される。
             errorMessage = error.localizedDescription
         }
         merge()
+    }
+
+    /// 条件に合う`ManholePhoto`を取得し、自分が投稿したぶんのポケふたIDと最新日時を返す。
+    private func fetchDates(predicate: NSPredicate, ownerRecordName: String) async throws -> [String: Date] {
+        let query = CKQuery(recordType: "ManholePhoto", predicate: predicate)
+        let (results, _) = try await db.records(
+            matching: query,
+            desiredKeys: ["manholeId", "ownerRecordName"]
+        )
+        var dates: [String: Date] = [:]
+        for (_, result) in results {
+            guard case .success(let record) = result,
+                  let manholeId = record["manholeId"] as? String,
+                  record["ownerRecordName"] as? String == ownerRecordName else { continue }
+            let date = record.creationDate ?? .distantPast
+            if let existing = dates[manholeId], existing >= date { continue }
+            dates[manholeId] = date
+        }
+        return dates
     }
 
     private func merge() {

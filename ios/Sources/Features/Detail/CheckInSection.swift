@@ -139,6 +139,7 @@ struct CheckInSection: View {
                         ownerRecordName: ownerRecordName,
                         imageData: pendingImageData
                     )
+                    photoHistoryService.markUploaded(manholeId: manhole.id)
                 }
                 try await detailService.addCheckin(
                     ownerRecordName: ownerRecordName,

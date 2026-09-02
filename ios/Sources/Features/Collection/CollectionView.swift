@@ -50,11 +50,18 @@ struct CollectionView: View {
                     }
                 }
 
-                if let errorMessage = historyService.errorMessage {
-                    Section {
-                        Text(errorMessage)
-                            .font(.caption)
-                            .foregroundStyle(.red)
+                if historyService.errorMessage != nil || photoHistoryService.errorMessage != nil {
+                    Section("同期エラー") {
+                        if let errorMessage = historyService.errorMessage {
+                            Text("チェックイン: " + errorMessage)
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                        }
+                        if let errorMessage = photoHistoryService.errorMessage {
+                            Text("写真: " + errorMessage)
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                        }
                     }
                 }
             }
