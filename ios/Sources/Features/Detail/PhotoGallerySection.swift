@@ -73,6 +73,12 @@ struct PhotoGallerySection: View {
             if let errorMessage {
                 Text(errorMessage).font(.caption).foregroundStyle(.red)
             }
+
+            if let serviceError = detailService.errorMessage {
+                Text("取得エラー: " + serviceError)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
         }
         .confirmationDialog(
             "この写真を削除しますか?",

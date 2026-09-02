@@ -10,8 +10,27 @@ final class ManholeDetailService: ObservableObject {
     let manholeId: String
     private let db = CKContainer(identifier: AppConfig.cloudKitContainerIdentifier).publicCloudDatabase
 
+    /// CloudKitのPublic Databaseは保存直後のレコードが検索に出るまで時間がかかるため、
+    /// 投稿した写真は手元でも保持し、取得結果と合成して表示する。
+    private var locallyAddedPhotos: [ManholePhoto] = []
+
     init(manholeId: String) {
         self.manholeId = manholeId
+    }
+
+    /// 写真の投稿が成功した直後に呼ぶ。検索に出るのを待たずにギャラリーへ反映される。
+    func insertUploadedPhoto(_ photo: ManholePhoto) {
+        guard !locallyAddedPhotos.contains(where: { $0.id == photo.id }) else { return }
+        locallyAddedPhotos.append(photo)
+        photos = mergedPhotos(fetched: photos)
+    }
+
+    /// 取得結果に、まだ検索に出てこない投稿直後の写真を足す。
+    private func mergedPhotos(fetched: [ManholePhoto]) -> [ManholePhoto] {
+        let fetchedIds = Set(fetched.map(\.id))
+        let pending = locallyAddedPhotos.filter { !fetchedIds.contains($0.id) }
+        return (fetched + pending)
+            .sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
     }
 
     var averageRating: Double {
@@ -22,7 +41,7 @@ final class ManholeDetailService: ObservableObject {
     func refresh() async {
         async let photosResult = fetchPhotos()
         async let spotsResult = fetchSpots()
-        photos = await photosResult
+        photos = mergedPhotos(fetched: await photosResult)
         spots = await spotsResult
     }
 
@@ -77,6 +96,7 @@ final class ManholeDetailService: ObservableObject {
     /// 自分が投稿した写真を削除する。
     func deletePhoto(_ photo: ManholePhoto) async throws {
         _ = try await db.deleteRecord(withID: CKRecord.ID(recordName: photo.id))
+        locallyAddedPhotos.removeAll { $0.id == photo.id }
         await refresh()
     }
 

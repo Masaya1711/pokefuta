@@ -107,10 +107,19 @@ struct CheckInSection: View {
 
         Task {
             do {
-                try await PhotoUploadService().uploadCheckinPhoto(
+                let saved = try await PhotoUploadService().uploadCheckinPhoto(
                     manholeId: manhole.id,
                     ownerRecordName: ownerRecordName,
                     imageData: imageData
+                )
+                detailService.insertUploadedPhoto(
+                    ManholePhoto(
+                        id: saved.recordID.recordName,
+                        manholeId: manhole.id,
+                        ownerRecordName: ownerRecordName,
+                        imageData: imageData,
+                        createdAt: saved.creationDate ?? Date()
+                    )
                 )
                 photoHistoryService.markUploaded(manholeId: manhole.id)
                 await detailService.refresh()
@@ -133,10 +142,19 @@ struct CheckInSection: View {
             do {
                 if let pendingImageData {
                     let uploadService = PhotoUploadService()
-                    try await uploadService.uploadCheckinPhoto(
+                    let saved = try await uploadService.uploadCheckinPhoto(
                         manholeId: manhole.id,
                         ownerRecordName: ownerRecordName,
                         imageData: pendingImageData
+                    )
+                    detailService.insertUploadedPhoto(
+                        ManholePhoto(
+                            id: saved.recordID.recordName,
+                            manholeId: manhole.id,
+                            ownerRecordName: ownerRecordName,
+                            imageData: pendingImageData,
+                            createdAt: saved.creationDate ?? Date()
+                        )
                     )
                     photoHistoryService.markUploaded(manholeId: manhole.id)
                 }
