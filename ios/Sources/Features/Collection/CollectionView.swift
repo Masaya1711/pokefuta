@@ -4,9 +4,14 @@ struct CollectionView: View {
     @EnvironmentObject private var authService: AuthService
     @EnvironmentObject private var manholeRepository: ManholeRepository
     @EnvironmentObject private var historyService: CheckinHistoryService
+    @EnvironmentObject private var photoHistoryService: PhotoHistoryService
 
     private var checkedInManholes: [Manhole] {
         manholeRepository.manholes.filter { historyService.checkedInManholeIds.contains($0.id) }
+    }
+
+    private var photographedManholes: [Manhole] {
+        manholeRepository.manholes.filter { photoHistoryService.photoManholeIds.contains($0.id) }
     }
 
     /// 同じポケふたに複数回チェックインしている場合は最新の日時を採用する。
@@ -25,17 +30,23 @@ struct CollectionView: View {
             List {
                 Section {
                     NavigationLink {
-                        CheckedInListView(
+                        ManholeListView(
+                            title: "収集済み",
                             manholes: checkedInManholes,
-                            checkedInAtById: checkedInAtById
+                            dateById: checkedInAtById
                         )
                     } label: {
-                        HStack {
-                            Text("収集済み")
-                            Spacer()
-                            Text("\(checkedInManholes.count) / \(manholeRepository.manholes.count)")
-                                .font(.title3.bold())
-                        }
+                        countRow(title: "収集済み", count: checkedInManholes.count)
+                    }
+
+                    NavigationLink {
+                        ManholeListView(
+                            title: "写真撮影済",
+                            manholes: photographedManholes,
+                            dateById: photoHistoryService.photoDatesById
+                        )
+                    } label: {
+                        countRow(title: "写真撮影済", count: photographedManholes.count)
                     }
                 }
 
@@ -53,8 +64,18 @@ struct CollectionView: View {
         .task { await refresh() }
     }
 
+    private func countRow(title: String, count: Int) -> some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Text("\(count) / \(manholeRepository.manholes.count)")
+                .font(.title3.bold())
+        }
+    }
+
     private func refresh() async {
         guard let ownerRecordName = authService.userRecordName else { return }
         await historyService.refresh(ownerRecordName: ownerRecordName)
+        await photoHistoryService.refresh(ownerRecordName: ownerRecordName)
     }
 }

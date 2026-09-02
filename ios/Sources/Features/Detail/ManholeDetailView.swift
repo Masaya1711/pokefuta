@@ -46,7 +46,7 @@ struct ManholeDetailView: View {
 
                 Divider()
 
-                PhotoGallerySection(photos: detailService.photos)
+                PhotoGallerySection(detailService: detailService, manholeId: manhole.id)
                     .padding(.horizontal)
 
                 Divider()

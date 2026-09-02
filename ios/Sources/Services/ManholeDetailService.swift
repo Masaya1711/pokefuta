@@ -74,6 +74,12 @@ final class ManholeDetailService: ObservableObject {
         await refresh()
     }
 
+    /// 自分が投稿した写真を削除する。
+    func deletePhoto(_ photo: ManholePhoto) async throws {
+        _ = try await db.deleteRecord(withID: CKRecord.ID(recordName: photo.id))
+        await refresh()
+    }
+
     func addCheckin(ownerRecordName: String, method: CheckinMethod, distanceMeters: Double) async throws {
         let record = CKRecord(recordType: "Checkin")
         record["manholeId"] = manholeId

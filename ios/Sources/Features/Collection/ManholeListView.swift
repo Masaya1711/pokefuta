@@ -1,10 +1,12 @@
 import SwiftUI
 
-/// チェックイン済みポケふたの一覧。公式画像付きで1件ずつ表示し、並び替えと検索ができる。
-struct CheckedInListView: View {
+/// ポケふたの一覧。公式画像付きで1件ずつ表示し、並び替えと検索ができる。
+/// チェックイン済みの一覧と写真撮影済みの一覧で共用する。
+struct ManholeListView: View {
+    let title: String
     let manholes: [Manhole]
-    /// ポケふたIDごとの最新チェックイン日時
-    let checkedInAtById: [String: Date]
+    /// ポケふたIDごとの日時(チェックイン日時、または写真の投稿日時)
+    let dateById: [String: Date]
 
     @State private var sortKey: SortKey = .date
     @State private var ascending = false
@@ -20,11 +22,11 @@ struct CheckedInListView: View {
     private var filteredManholes: [Manhole] {
         let keyword = searchText.trimmingCharacters(in: .whitespaces)
         guard !keyword.isEmpty else { return manholes }
-        return manholes.filter {
-            $0.prefName.contains(keyword)
-                || $0.city.contains(keyword)
-                || $0.address.contains(keyword)
-                || $0.pokemonList.contains { $0.name.contains(keyword) }
+        return manholes.filter { manhole in
+            manhole.prefName.contains(keyword)
+                || manhole.city.contains(keyword)
+                || manhole.address.contains(keyword)
+                || manhole.pokemonList.contains { $0.name.contains(keyword) }
         }
     }
 
@@ -32,8 +34,8 @@ struct CheckedInListView: View {
         let sorted = filteredManholes.sorted { lhs, rhs in
             switch sortKey {
             case .date:
-                let lhsDate = checkedInAtById[lhs.id] ?? .distantPast
-                let rhsDate = checkedInAtById[rhs.id] ?? .distantPast
+                let lhsDate = dateById[lhs.id] ?? .distantPast
+                let rhsDate = dateById[rhs.id] ?? .distantPast
                 if lhsDate == rhsDate { return lhs.displayTitle < rhs.displayTitle }
                 return lhsDate < rhsDate
             case .prefecture:
@@ -54,9 +56,7 @@ struct CheckedInListView: View {
     var body: some View {
         List {
             if sortedManholes.isEmpty {
-                Text(searchText.isEmpty
-                     ? "まだチェックインしたポケふたがありません。"
-                     : "該当するポケふたがありません。")
+                Text(searchText.isEmpty ? "まだ1件もありません。" : "該当するポケふたがありません。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
@@ -70,7 +70,7 @@ struct CheckedInListView: View {
             }
         }
         .listStyle(.plain)
-        .navigationTitle("収集済み \(sortedManholes.count)件")
+        .navigationTitle("\(title) \(sortedManholes.count)件")
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $searchText, prompt: "都道府県・市区町村・住所・ポケモン名")
         .toolbar {
@@ -107,7 +107,7 @@ struct CheckedInListView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(manhole.displayTitle)
                     .font(.subheadline.weight(.semibold))
-                if let date = checkedInAtById[manhole.id] {
+                if let date = dateById[manhole.id] {
                     Text(Self.dateFormatter.string(from: date))
                         .font(.caption)
                         .foregroundStyle(.secondary)
